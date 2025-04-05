@@ -2,226 +2,222 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nudelinventur</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icon-192.png">
-  <meta name="theme-color" content="#00aaff">
+  <meta name="theme-color" content="#00aaff" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" />
   <style>
-    :root {
-      --azzurro: #00aaff;
-      --text: #222;
-      --background: #f0f8ff;
-      --white: #ffffff;
-    }
-
-    * {
-      box-sizing: border-box;
+    body {
       margin: 0;
-      padding: 0;
-    }
-
-    html, body {
-      height: 100%;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: var(--background);
-      color: var(--text);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f8ff;
+      color: #222;
       display: flex;
       flex-direction: column;
+      height: 100vh;
     }
-
     header {
-      background-color: var(--azzurro);
-      color: var(--white);
+      background-color: #00aaff;
+      color: white;
       padding: 1rem;
-      text-align: center;
       font-size: 1.8rem;
-      font-weight: bold;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      text-align: center;
     }
-
     main {
       flex: 1;
       padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
+      overflow-y: auto;
     }
-
     footer {
+      background: #e6f7ff;
+      padding: 0.8rem;
       text-align: center;
-      padding: 1rem;
       font-size: 0.9rem;
       color: #666;
-      background-color: #e6f7ff;
-      border-top: 1px solid #cceeff;
     }
-
     button {
       padding: 1rem;
+      margin: 0.5rem 0;
       font-size: 1rem;
-      background-color: var(--azzurro);
-      color: var(--white);
       border: none;
       border-radius: 8px;
+      background-color: #00aaff;
+      color: white;
       cursor: pointer;
-      transition: background 0.2s;
     }
-
-    button:hover {
-      background-color: #0090cc;
-    }
-
     #scanner {
+      display: none;
+      margin: 1rem 0;
       width: 100%;
       max-width: 400px;
       height: 300px;
-      border: 2px dashed #ccc;
-      margin: 1rem auto;
-      display: none;
-      background-color: #fff;
+      border: 2px dashed #aaa;
+      background: #fff;
     }
-
     .item {
-      background-color: #ffffff;
-      border: 1px solid #ddd;
+      background: white;
+      border-radius: 8px;
       padding: 1rem;
-      border-radius: 10px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      margin: 1rem 0;
+      display: flex;
+      gap: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .item img {
+      width: 80px;
+      height: 80px;
+      background: #eee;
+      border-radius: 6px;
+    }
+    .info {
+      flex-grow: 1;
+    }
+    .info h3 {
+      margin: 0 0 0.3rem;
+    }
+    .actions button {
+      background: #ccc;
+      color: black;
+      font-size: 0.8rem;
+      margin-top: 0.4rem;
     }
   </style>
 </head>
 <body>
+  <header>NudelInventur</header>
+  <main>
+    <button onclick="startScan()">📷 Neue Nudel scannen</button>
+    <button onclick="zeigeListe()">📋 Inventarliste anzeigen</button>
+    <button onclick="resetDaten()">🗑️ Alle Daten löschen</button>
+    <div id="scanner"></div>
+    <div id="liste"></div>
+  </main>
+  <footer>Version: 1.3.0</footer>
 
-<header>NudelInventur</header>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script>
+    let nudeln = JSON.parse(localStorage.getItem('nudeln')) || [];
+    let barcodeDB = JSON.parse(localStorage.getItem('barcodeDB')) || {};
 
-<main>
-  <button onclick="startScan()">📷 Neue Nudel scannen</button>
-  <button onclick="zeigeListe()">📋 Inventarliste anzeigen</button>
-  <button onclick="resetDaten()">🗑️ Alle Daten löschen</button>
-
-  <div id="scanner"></div>
-  <div id="liste"></div>
-</main>
-
-<footer>Version: 1.2.0</footer>
-
-<script src="https://unpkg.com/html5-qrcode"></script>
-<script>
-  let nudeln = JSON.parse(localStorage.getItem('nudeln')) || [];
-  let barcodeDB = JSON.parse(localStorage.getItem('barcodeDB')) || {};
-
-  function startScan() {
-    document.getElementById('scanner').style.display = 'block';
-    const qr = new Html5Qrcode("scanner");
-
-    qr.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 250 },
-      (code) => {
-        qr.stop().then(() => {
-          document.getElementById('scanner').style.display = 'none';
-          neueNudel(code);
-        });
-      },
-      (err) => {
-        console.warn("Scan-Fehler", err);
-      }
-    ).catch(err => {
-      alert("Fehler beim Starten des Scanners: " + err);
-    });
-  }
-
-  function neueNudel(code) {
-    const lokalVorschlag = barcodeDB[code];
-
-    if (lokalVorschlag) {
-      if (confirm(`Ist das "${lokalVorschlag}"?`)) {
-        speichereNudel(code, lokalVorschlag);
-        return;
-      }
+    function startScan() {
+      document.getElementById('scanner').style.display = 'block';
+      const qr = new Html5Qrcode("scanner");
+      qr.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        (code) => {
+          qr.stop().then(() => {
+            document.getElementById('scanner').style.display = 'none';
+            neueNudel(code);
+          });
+        }
+      );
     }
 
-    fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`)
-      .then(res => res.json())
-      .then(data => {
-        let produkt = data.product || {};
-        const name =
-          produkt.product_name_de ||
-          produkt.product_name_en ||
-          produkt.product_name_fr ||
-          produkt.product_name ||
-          "Unbekanntes Produkt";
-
-        if (data.status === 1 && name) {
-          if (confirm(`Ist das "${name}"?`)) {
-            barcodeDB[code] = name;
-            localStorage.setItem("barcodeDB", JSON.stringify(barcodeDB));
-            speichereNudel(code, name);
-            return;
+    function neueNudel(code) {
+      const lokalVorschlag = barcodeDB[code];
+      if (lokalVorschlag) {
+        if (confirm(`Ist das "${lokalVorschlag}"?`)) {
+          speichereNudel(code, lokalVorschlag);
+          return;
+        }
+      }
+      fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`)
+        .then(res => res.json())
+        .then(data => {
+          let produkt = data.product || {};
+          const name =
+            produkt.product_name_de ||
+            produkt.product_name_en ||
+            produkt.product_name_fr ||
+            produkt.product_name ||
+            "Unbekanntes Produkt";
+          if (data.status === 1 && name) {
+            if (confirm(`Ist das "${name}"?`)) {
+              barcodeDB[code] = name;
+              localStorage.setItem("barcodeDB", JSON.stringify(barcodeDB));
+              speichereNudel(code, name);
+              return;
+            }
           }
-        }
-
-        const eigeneEingabe = prompt("Welche Nudelsorte ist das?");
-        if (eigeneEingabe) {
-          barcodeDB[code] = eigeneEingabe;
-          localStorage.setItem("barcodeDB", JSON.stringify(barcodeDB));
-          speichereNudel(code, eigeneEingabe);
-        }
-      })
-      .catch(err => {
-        console.error("Fehler bei Web-Abfrage:", err);
-        const eigeneEingabe = prompt("Welche Nudelsorte ist das?");
-        if (eigeneEingabe) {
-          barcodeDB[code] = eigeneEingabe;
-          localStorage.setItem("barcodeDB", JSON.stringify(barcodeDB));
-          speichereNudel(code, eigeneEingabe);
-        }
-      });
-  }
-
-  function speichereNudel(code, typ) {
-    const menge = prompt("Wie viel ist davon da?");
-    if (!menge) return;
-    nudeln.push({
-      code,
-      typ,
-      menge,
-      datum: new Date().toLocaleDateString()
-    });
-    localStorage.setItem('nudeln', JSON.stringify(nudeln));
-    alert("Nudel gespeichert!");
-  }
-
-  function zeigeListe() {
-    const div = document.getElementById('liste');
-    div.innerHTML = "<h2>Inventarliste</h2>";
-    if (nudeln.length === 0) {
-      div.innerHTML += "<p>Keine Nudeln erfasst.</p>";
-    } else {
-      nudeln.forEach(n => {
-        div.innerHTML += `<div class="item">${n.typ} – ${n.menge} <br><small>Erfasst am ${n.datum}</small></div>`;
-      });
+          const eigeneEingabe = prompt("Welche Nudelsorte ist das?");
+          if (eigeneEingabe) {
+            barcodeDB[code] = eigeneEingabe;
+            localStorage.setItem("barcodeDB", JSON.stringify(barcodeDB));
+            speichereNudel(code, eigeneEingabe);
+          }
+        });
     }
-  }
 
-  function resetDaten() {
-    if (confirm("Willst du wirklich alle erfassten Nudeln löschen?")) {
-      localStorage.removeItem('nudeln');
-      localStorage.removeItem('barcodeDB');
-      nudeln = [];
-      barcodeDB = {};
-      zeigeListe();
+    function speichereNudel(code, typ) {
+      const menge = prompt("Wie viel ist davon da?");
+      const anzahl = prompt("Wie viele Packungen?");
+      if (!menge || !anzahl) return;
+      nudeln.push({ code, typ, menge, anzahl, datum: new Date().toLocaleDateString() });
+      localStorage.setItem("nudeln", JSON.stringify(nudeln));
+      alert("Nudel gespeichert!");
     }
-  }
 
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js')
-      .then(() => console.log("Service Worker registriert!"))
-      .catch(err => console.error("Fehler beim Registrieren:", err));
-  }
-</script>
+    function zeigeListe() {
+      const div = document.getElementById("liste");
+      div.innerHTML = "<h2>Inventarliste</h2>";
+      if (nudeln.length === 0) {
+        div.innerHTML += "<p>Keine Nudeln erfasst.</p>";
+      } else {
+        nudeln.forEach((n, index) => {
+          div.innerHTML += `
+            <div class="item">
+              <img src="placeholder.png" alt="Bild">
+              <div class="info">
+                <h3>${n.typ}</h3>
+                <p>Inhalt: ${n.menge}</p>
+                <p>Anzahl: ${n.anzahl}</p>
+                <p><small>Erfasst am ${n.datum}</small></p>
+              </div>
+              <div class="actions">
+                <button onclick="bearbeiten(${index})">✏️ Bearbeiten</button>
+                <button onclick="loeschen(${index})">🗑️ Löschen</button>
+              </div>
+            </div>`;
+        });
+      }
+    }
 
+    function bearbeiten(index) {
+      const item = nudeln[index];
+      const neueMenge = prompt("Neue Menge:", item.menge);
+      const neueAnzahl = prompt("Neue Anzahl:", item.anzahl);
+      if (neueMenge && neueAnzahl) {
+        item.menge = neueMenge;
+        item.anzahl = neueAnzahl;
+        localStorage.setItem("nudeln", JSON.stringify(nudeln));
+        zeigeListe();
+      }
+    }
+
+    function loeschen(index) {
+      if (confirm("Eintrag wirklich löschen?")) {
+        nudeln.splice(index, 1);
+        localStorage.setItem("nudeln", JSON.stringify(nudeln));
+        zeigeListe();
+      }
+    }
+
+    function resetDaten() {
+      if (confirm("Willst du wirklich alle erfassten Nudeln löschen?")) {
+        localStorage.removeItem("nudeln");
+        localStorage.removeItem("barcodeDB");
+        nudeln = [];
+        barcodeDB = {};
+        zeigeListe();
+      }
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
 </body>
 </html>
