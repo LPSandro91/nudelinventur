@@ -1,0 +1,115 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Nudelinventur</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <meta name="theme-color" content="#f3f3f3">
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    button {
+      margin-right: 10px;
+      padding: 10px;
+      font-size: 16px;
+    }
+    #scanner {
+      width: 100%;
+      max-width: 400px;
+      height: 300px;
+      border: 1px solid #ccc;
+      margin-top: 20px;
+      display: none;
+    }
+    .item {
+      margin: 10px 0;
+      padding: 8px;
+      background: #f3f3f3;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Nudelinventur</h1>
+
+<button onclick="startScan()">Neue Nudel scannen</button>
+<button onclick="zeigeListe()">Inventarliste anzeigen</button>
+<button onclick="resetDaten()">Alle Daten löschen</button>
+
+<div id="scanner"></div>
+<div id="liste"></div>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+  let nudeln = JSON.parse(localStorage.getItem('nudeln')) || [];
+
+  function startScan() {
+    document.getElementById('scanner').style.display = 'block';
+    const qr = new Html5Qrcode("scanner");
+
+    qr.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      (code) => {
+        qr.stop().then(() => {
+          document.getElementById('scanner').style.display = 'none';
+          neueNudel(code);
+        });
+      },
+      (err) => {
+        console.warn("Scan-Fehler", err);
+      }
+    ).catch(err => {
+      alert("Fehler beim Starten des Scanners: " + err);
+    });
+  }
+
+  function neueNudel(code) {
+    const typ = prompt("Welche Nudelsorte ist das? (z. B. Spaghetti)");
+    if (!typ) return;
+    const menge = prompt("Wie viel ist davon da? (z. B. 500g)");
+    if (!menge) return;
+    nudeln.push({
+      code,
+      typ,
+      menge,
+      datum: new Date().toLocaleDateString()
+    });
+    localStorage.setItem('nudeln', JSON.stringify(nudeln));
+    alert("Nudel gespeichert!");
+  }
+
+  function zeigeListe() {
+    const div = document.getElementById('liste');
+    div.innerHTML = "<h2>Inventarliste</h2>";
+    if (nudeln.length === 0) {
+      div.innerHTML += "<p>Keine Nudeln erfasst.</p>";
+    } else {
+      nudeln.forEach(n => {
+        div.innerHTML += `<div class="item">${n.typ} – ${n.menge} <br><small>Erfasst am ${n.datum}</small></div>`;
+      });
+    }
+  }
+
+  function resetDaten() {
+    if (confirm("Willst du wirklich alle erfassten Nudeln löschen?")) {
+      localStorage.removeItem('nudeln');
+      nudeln = [];
+      zeigeListe();
+    }
+  }
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(() => console.log("Service Worker registriert!"))
+      .catch(err => console.error("Fehler beim Registrieren:", err));
+  }
+</script>
+
+</body>
+</html>
