@@ -79,7 +79,7 @@
     const lokalVorschlag = barcodeDB[code];
 
     if (lokalVorschlag) {
-      if (confirm(`Ist das "{lokalVorschlag}"?`)) {
+      if (confirm(`Ist das "${lokalVorschlag}"?`)) {
         speichereNudel(code, lokalVorschlag);
         return;
       }
@@ -98,7 +98,7 @@
           "Unbekanntes Produkt";
 
         if (data.status === 1 && name) {
-          if (confirm(`Ist das "{name}"?`)) {
+          if (confirm(`Ist das "${name}"?`)) {
             barcodeDB[code] = name;
             localStorage.setItem("barcodeDB", JSON.stringify(barcodeDB));
             speichereNudel(code, name);
@@ -166,7 +166,7 @@
   }
 </script>
 
-<footer>Version: 1.1.0</footer>
+<footer>Version: 1.1.1</footer>
 
 </body>
 </html>
