@@ -35,6 +35,21 @@
 </head>
 <body>
 
+<script>
+const richtigerCode = "3471348284098039";
+
+if (localStorage.getItem("code_ok") !== "true") {
+  const eingabe = prompt("Bitte 16-stelligen Zugangscode eingeben:");
+  if (eingabe !== richtigerCode) {
+    alert("Falscher Code. Zugriff verweigert.");
+    document.body.innerHTML = "<h2>Zugriff verweigert</h2>";
+    throw new Error("Zugriff verweigert");
+  } else {
+    localStorage.setItem("code_ok", "true");
+  }
+}
+</script>
+
 <h1>Nudelinventur</h1>
 
 <button onclick="startScan()">Neue Nudel scannen</button>
@@ -99,6 +114,7 @@
   function resetDaten() {
     if (confirm("Willst du wirklich alle erfassten Nudeln löschen?")) {
       localStorage.removeItem('nudeln');
+      localStorage.removeItem('code_ok');
       nudeln = [];
       zeigeListe();
     }
