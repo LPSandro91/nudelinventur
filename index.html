@@ -14,11 +14,11 @@
       margin: 0;
       font-family: "Segoe UI", sans-serif;
       background-color: var(--background);
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
     }
     header {
+      position: sticky;
+      top: 0;
+      z-index: 999;
       background-color: var(--azzurro);
       color: white;
       padding: 1rem;
@@ -31,6 +31,9 @@
       justify-content: space-around;
       padding: 0.5rem 0;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 3.6rem;
+      z-index: 998;
     }
     nav button {
       border: none;
@@ -40,9 +43,7 @@
       color: var(--azzurro);
     }
     main {
-      flex: 1;
       padding: 1rem;
-      overflow-y: auto;
     }
     footer {
       background: #e6f7ff;
@@ -55,8 +56,8 @@
       display: none;
       margin: 0 auto 1rem;
       width: 100%;
-      max-width: 300px;
-      height: 200px;
+      max-width: 320px;
+      aspect-ratio: 4 / 3;
       border: 2px dashed #aaa;
       background: #fff;
     }
@@ -68,6 +69,7 @@
       display: flex;
       align-items: center;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      min-height: 100px;
     }
     .item img {
       width: 80px;
@@ -116,6 +118,7 @@
       gap: 10px;
       margin: 1rem 0;
       align-items: center;
+      flex-wrap: wrap;
     }
   </style>
 </head>
@@ -124,12 +127,12 @@
   <nav>
     <button onclick="zeigeScanner()">📷 Scannen</button>
     <button onclick="zeigeListe()">📋 Liste</button>
-    <button onclick="resetDaten()">🗑️ Löschen</button>
   </nav>
   <main>
     <div id="scanner"></div>
     <div id="filterSort" style="display: none;">
       <input type="text" id="filterInput" placeholder="Suche nach Sorte..." oninput="zeigeListe()" />
+      <select id="markenFilter" onchange="zeigeListe()"><option value="">Alle Marken</option></select>
       <select id="sortSelect" onchange="zeigeListe()">
         <option value="datum">Sortieren nach: Datum</option>
         <option value="typ">Sortieren nach: Sorte</option>
@@ -138,12 +141,11 @@
     </div>
     <div id="liste"></div>
   </main>
-  <footer>Version: 1.6.0</footer>
+  <footer>Version: 1.7.0</footer>
 
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script>
     let nudeln = JSON.parse(localStorage.getItem('nudeln')) || [];
-    let barcodeDB = JSON.parse(localStorage.getItem('barcodeDB')) || {};
 
     function zeigeScanner() {
       document.getElementById('scanner').style.display = 'block';
@@ -170,8 +172,8 @@
         .then(data => {
           const produkt = data.product || {};
           const name = produkt.product_name_de || produkt.product_name || "Unbekannt";
-          const menge = produkt.quantity || "500g";
-          const marke = produkt.brands || "--";
+          const menge = (produkt.quantity || "500g").split(" ")[0].replace(/[^0-9]/g, "") + "g";
+          const marke = (produkt.brands || "--").split(",")[0].trim();
           const bild = produkt.image_front_thumb_url || "placeholder.png";
 
           if (data.status === 1 && name) {
@@ -180,7 +182,6 @@
               return;
             }
           }
-
           const eigeneEingabe = prompt("Welche Nudelsorte ist das?");
           if (eigeneEingabe) {
             speichereNudel({ typ: eigeneEingabe, menge: "500g", marke: "--", bild: "placeholder.png" });
@@ -204,11 +205,19 @@
       const div = document.getElementById("liste");
       let liste = [...nudeln];
       const filter = document.getElementById("filterInput").value.toLowerCase();
+      const marke = document.getElementById("markenFilter").value;
       const sort = document.getElementById("sortSelect").value;
 
       if (filter) {
         liste = liste.filter(n => n.typ.toLowerCase().includes(filter));
       }
+      if (marke) {
+        liste = liste.filter(n => n.marke === marke);
+      }
+      const markenListe = [...new Set(nudeln.map(n => n.marke))].sort();
+      document.getElementById("markenFilter").innerHTML =
+        '<option value="">Alle Marken</option>' +
+        markenListe.map(m => `<option value="${m}">${m}</option>`).join("");
 
       if (sort === "typ") liste.sort((a, b) => a.typ.localeCompare(b.typ));
       if (sort === "anzahl") liste.sort((a, b) => b.anzahl - a.anzahl);
@@ -217,7 +226,7 @@
       div.innerHTML = liste.length
         ? liste.map((n, index) => `
           <div class="item">
-            <img src="${n.bild}" alt="Bild">
+            <img src="${n.bild}" onerror="this.src='placeholder.png';" alt="Bild">
             <div class="info">
               <h3>${n.typ}</h3>
               <p>Marke: ${n.marke}</p>
@@ -250,14 +259,6 @@
       if (confirm("Eintrag wirklich löschen?")) {
         nudeln.splice(index, 1);
         localStorage.setItem("nudeln", JSON.stringify(nudeln));
-        zeigeListe();
-      }
-    }
-
-    function resetDaten() {
-      if (confirm("Willst du wirklich alle erfassten Nudeln löschen?")) {
-        localStorage.clear();
-        nudeln = [];
         zeigeListe();
       }
     }
