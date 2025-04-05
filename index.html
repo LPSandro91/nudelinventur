@@ -31,6 +31,11 @@
       background: #f3f3f3;
       border-radius: 5px;
     }
+    footer {
+      margin-top: 40px;
+      font-size: 0.9em;
+      color: #999;
+    }
   </style>
 </head>
 <body>
@@ -74,7 +79,7 @@
     const lokalVorschlag = barcodeDB[code];
 
     if (lokalVorschlag) {
-      if (confirm(`Ist das "${lokalVorschlag}"?`)) {
+      if (confirm(`Ist das "{lokalVorschlag}"?`)) {
         speichereNudel(code, lokalVorschlag);
         return;
       }
@@ -84,12 +89,19 @@
     fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`)
       .then(res => res.json())
       .then(data => {
-        if (data.status === 1 && data.product.product_name) {
-          const webVorschlag = data.product.product_name;
-          if (confirm(`Ist das "${webVorschlag}"?`)) {
-            barcodeDB[code] = webVorschlag;
+        let produkt = data.product || {};
+        const name =
+          produkt.product_name_de ||
+          produkt.product_name_en ||
+          produkt.product_name_fr ||
+          produkt.product_name ||
+          "Unbekanntes Produkt";
+
+        if (data.status === 1 && name) {
+          if (confirm(`Ist das "{name}"?`)) {
+            barcodeDB[code] = name;
             localStorage.setItem("barcodeDB", JSON.stringify(barcodeDB));
-            speichereNudel(code, webVorschlag);
+            speichereNudel(code, name);
             return;
           }
         }
@@ -153,6 +165,8 @@
       .catch(err => console.error("Fehler beim Registrieren:", err));
   }
 </script>
+
+<footer>Version: 1.1.0</footer>
 
 </body>
 </html>
