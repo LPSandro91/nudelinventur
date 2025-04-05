@@ -35,21 +35,6 @@
 </head>
 <body>
 
-<script>
-const richtigerCode = "3471348284098039";
-
-if (localStorage.getItem("code_ok") !== "true") {
-  const eingabe = prompt("Bitte 16-stelligen Zugangscode eingeben:");
-  if (eingabe !== richtigerCode) {
-    alert("Falscher Code. Zugriff verweigert.");
-    document.body.innerHTML = "<h2>Zugriff verweigert</h2>";
-    throw new Error("Zugriff verweigert");
-  } else {
-    localStorage.setItem("code_ok", "true");
-  }
-}
-</script>
-
 <h1>Nudelinventur</h1>
 
 <button onclick="startScan()">Neue Nudel scannen</button>
@@ -62,6 +47,7 @@ if (localStorage.getItem("code_ok") !== "true") {
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script>
   let nudeln = JSON.parse(localStorage.getItem('nudeln')) || [];
+  let barcodeDB = JSON.parse(localStorage.getItem('barcodeDB')) || {};
 
   function startScan() {
     document.getElementById('scanner').style.display = 'block';
@@ -85,9 +71,25 @@ if (localStorage.getItem("code_ok") !== "true") {
   }
 
   function neueNudel(code) {
-    const typ = prompt("Welche Nudelsorte ist das? (z. B. Spaghetti)");
-    if (!typ) return;
-    const menge = prompt("Wie viel ist davon da? (z. B. 500g)");
+    const vorgeschlagen = barcodeDB[code];
+
+    if (vorgeschlagen) {
+      if (confirm(`Ist das "${vorgeschlagen}"?`)) {
+        speichereNudel(code, vorgeschlagen);
+        return;
+      }
+    }
+
+    const eigeneEingabe = prompt("Welche Nudelsorte ist das?");
+    if (eigeneEingabe) {
+      barcodeDB[code] = eigeneEingabe;
+      localStorage.setItem("barcodeDB", JSON.stringify(barcodeDB));
+      speichereNudel(code, eigeneEingabe);
+    }
+  }
+
+  function speichereNudel(code, typ) {
+    const menge = prompt("Wie viel ist davon da?");
     if (!menge) return;
     nudeln.push({
       code,
@@ -114,8 +116,9 @@ if (localStorage.getItem("code_ok") !== "true") {
   function resetDaten() {
     if (confirm("Willst du wirklich alle erfassten Nudeln löschen?")) {
       localStorage.removeItem('nudeln');
-      localStorage.removeItem('code_ok');
+      localStorage.removeItem('barcodeDB');
       nudeln = [];
+      barcodeDB = {};
       zeigeListe();
     }
   }
