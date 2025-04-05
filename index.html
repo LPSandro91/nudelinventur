@@ -77,6 +77,7 @@
       height: 80px;
       background: #eee;
       border-radius: 6px;
+      object-fit: cover;
     }
     .info {
       flex-grow: 1;
@@ -92,7 +93,7 @@
       color: #333;
     }
     .anzahl {
-      font-size: 1.3rem;
+      font-size: 1.6rem;
       font-weight: bold;
       margin-left: auto;
       margin-right: 1rem;
@@ -126,7 +127,7 @@
     <div id="scanner"></div>
     <div id="liste"></div>
   </main>
-  <footer>Version: 1.4.0</footer>
+  <footer>Version: 1.5.0</footer>
 
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script>
@@ -151,11 +152,12 @@
     function neueNudel(code) {
       const lokalVorschlag = barcodeDB[code];
       if (lokalVorschlag) {
-        if (confirm(`Ist das "${lokalVorschlag}"?`)) {
-          speichereNudel(code, lokalVorschlag, "500g");
+        if (confirm(`Ist das "${lokalVorschlag.typ}"?`)) {
+          speichereNudel(code, lokalVorschlag);
           return;
         }
       }
+
       fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`)
         .then(res => res.json())
         .then(data => {
@@ -167,29 +169,33 @@
             produkt.product_name ||
             "Unbekanntes Produkt";
           const menge = produkt.quantity || "500g";
+          const marke = produkt.brands || "--";
+          const bild = produkt.image_front_thumb_url || "placeholder.png";
 
           if (data.status === 1 && name) {
             if (confirm(`Ist das "${name}"?`)) {
-              barcodeDB[code] = name;
+              const eintrag = { typ: name, menge, marke, bild };
+              barcodeDB[code] = eintrag;
               localStorage.setItem("barcodeDB", JSON.stringify(barcodeDB));
-              speichereNudel(code, name, menge);
+              speichereNudel(code, eintrag);
               return;
             }
           }
 
           const eigeneEingabe = prompt("Welche Nudelsorte ist das?");
           if (eigeneEingabe) {
-            barcodeDB[code] = eigeneEingabe;
+            const eintrag = { typ: eigeneEingabe, menge: "500g", marke: "--", bild: "placeholder.png" };
+            barcodeDB[code] = eintrag;
             localStorage.setItem("barcodeDB", JSON.stringify(barcodeDB));
-            speichereNudel(code, eigeneEingabe, "500g");
+            speichereNudel(code, eintrag);
           }
         });
     }
 
-    function speichereNudel(code, typ, menge) {
+    function speichereNudel(code, info) {
       const anzahl = prompt("Wie viele Packungen?");
       if (!anzahl) return;
-      nudeln.push({ code, typ, menge, anzahl, datum: new Date().toLocaleDateString() });
+      nudeln.push({ code, ...info, anzahl, datum: new Date().toLocaleDateString() });
       localStorage.setItem("nudeln", JSON.stringify(nudeln));
       alert("Nudel gespeichert!");
     }
@@ -203,10 +209,10 @@
         nudeln.forEach((n, index) => {
           div.innerHTML += `
             <div class="item">
-              <img src="placeholder.png" alt="Bild">
+              <img src="${n.bild}" alt="Bild">
               <div class="info">
                 <h3>${n.typ}</h3>
-                <p>Marke: --</p>
+                <p>Marke: ${n.marke}</p>
                 <p>Inhalt: ${n.menge}</p>
                 <p><small>Erfasst am ${n.datum}</small></p>
               </div>
