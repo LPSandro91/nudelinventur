@@ -71,21 +71,45 @@
   }
 
   function neueNudel(code) {
-    const vorgeschlagen = barcodeDB[code];
+    const lokalVorschlag = barcodeDB[code];
 
-    if (vorgeschlagen) {
-      if (confirm(`Ist das "${vorgeschlagen}"?`)) {
-        speichereNudel(code, vorgeschlagen);
+    if (lokalVorschlag) {
+      if (confirm(`Ist das "${lokalVorschlag}"?`)) {
+        speichereNudel(code, lokalVorschlag);
         return;
       }
     }
 
-    const eigeneEingabe = prompt("Welche Nudelsorte ist das?");
-    if (eigeneEingabe) {
-      barcodeDB[code] = eigeneEingabe;
-      localStorage.setItem("barcodeDB", JSON.stringify(barcodeDB));
-      speichereNudel(code, eigeneEingabe);
-    }
+    // Web-Abfrage (OpenFoodFacts)
+    fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 1 && data.product.product_name) {
+          const webVorschlag = data.product.product_name;
+          if (confirm(`Ist das "${webVorschlag}"?`)) {
+            barcodeDB[code] = webVorschlag;
+            localStorage.setItem("barcodeDB", JSON.stringify(barcodeDB));
+            speichereNudel(code, webVorschlag);
+            return;
+          }
+        }
+
+        const eigeneEingabe = prompt("Welche Nudelsorte ist das?");
+        if (eigeneEingabe) {
+          barcodeDB[code] = eigeneEingabe;
+          localStorage.setItem("barcodeDB", JSON.stringify(barcodeDB));
+          speichereNudel(code, eigeneEingabe);
+        }
+      })
+      .catch(err => {
+        console.error("Fehler bei Web-Abfrage:", err);
+        const eigeneEingabe = prompt("Welche Nudelsorte ist das?");
+        if (eigeneEingabe) {
+          barcodeDB[code] = eigeneEingabe;
+          localStorage.setItem("barcodeDB", JSON.stringify(barcodeDB));
+          speichereNudel(code, eigeneEingabe);
+        }
+      });
   }
 
   function speichereNudel(code, typ) {
